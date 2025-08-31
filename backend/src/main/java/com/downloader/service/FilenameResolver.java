@@ -24,28 +24,28 @@ public class FilenameResolver {
     private final OkHttpClient okHttpClient;
 
     public String resolveFilename(String url, String overrideFilename) {
-        var requestBuilder = new Request.Builder().url(url);
         return Optional
             .ofNullable(overrideFilename)
-            .or(() -> resolveFromRequest(requestBuilder.head().build()))
-            .or(() -> resolveFromRequest(requestBuilder.get().build()))
+            .or(() -> resolveFromRequest(url))
             .or(() -> parseFromUrl(url))
             .map(this::sanitizeFilename)
             .orElse("file-%s.html".formatted(UUID.randomUUID().toString()));
     }
 
-    private Optional<String> resolveFromRequest(Request request) {
+    private Optional<String> resolveFromRequest(String url) {
+        var request = new Request.Builder().url(url).get().build();
         try {
             try (var response = okHttpClient.newCall(request).execute()) {
-                var filename = extractFileName(response.headers("Content-Disposition"), request.url().toString());
+                var filename = extractFileNameFromHeaders(response.headers("Content-Disposition"));
                 return Optional.ofNullable(filename);
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            log.error(e.getMessage());
             return Optional.empty();
         }
     }
 
-    private String extractFileName(List<String> filenameHeaders, String url) {
+    private String extractFileNameFromHeaders(List<String> filenameHeaders) {
         for (var header : filenameHeaders) {
             String filename = Optional
                 .ofNullable(parseEncodedFilename(header))
@@ -59,7 +59,8 @@ public class FilenameResolver {
     }
 
     private Optional<String> parseFromUrl(String url) {
-        return Optional.ofNullable(StringUtils.trimToNull(FilenameUtils.getName(URI.create(url).getPath())));
+        var path = UriComponentsBuilder.fromUriString(url).build().getPath();
+        return Optional.ofNullable(StringUtils.trimToNull(FilenameUtils.getName(path)));
     }
 
     //Content-Disposition: attachment; filename*=UTF-8''%E4%BE%8B%E5%AD%90.txt

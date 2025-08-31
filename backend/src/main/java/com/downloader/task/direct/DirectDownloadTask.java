@@ -5,10 +5,11 @@ import com.downloader.service.DownloadSink;
 import com.downloader.task.DownloadTask;
 import java.io.*;
 import java.nio.file.*;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import okio.*;
+import okio.Okio;
 import org.apache.commons.io.FileUtils;
 
 import static com.downloader.config.AppConstants.FILEPART_FORMAT;
@@ -16,16 +17,32 @@ import static com.downloader.config.AppConstants.FILEPART_FORMAT;
 @Slf4j
 public class DirectDownloadTask implements DownloadTask {
 
+    private static final int MAX_SPEED_SAMPLES = 5;
+    private static final long PROGRESS_UPDATE_INTERVAL_MS = 500;
+    private static final long SPEED_CALCULATION_INTERVAL_MS = 1000;
+
+    private volatile boolean paused = false;
+
     private final DownloadInfo downloadInfo;
     private final OkHttpClient httpClient;
     private final DownloadSink downloadSink;
-    private volatile boolean paused = false;
+
+    private final AtomicLong lastProgressUpdateTime;
+    private final AtomicLong lastSpeedCalculationTime;
+    private final AtomicLong lastDownloadedSize;
+    private final AtomicLong speedSum;
+    private final AtomicLong speedSampleCount;
 
     @Builder
     public DirectDownloadTask(DownloadInfo downloadInfo, OkHttpClient httpClient, DownloadSink downloadSink) {
         this.downloadInfo = downloadInfo;
         this.httpClient = httpClient;
         this.downloadSink = downloadSink;
+        this.lastProgressUpdateTime = new AtomicLong(System.currentTimeMillis());
+        this.lastSpeedCalculationTime = new AtomicLong(System.currentTimeMillis());
+        this.lastDownloadedSize = new AtomicLong(downloadInfo.getDownloadedSize());
+        this.speedSum = new AtomicLong(0);
+        this.speedSampleCount = new AtomicLong(0);
     }
 
     @Override
@@ -46,14 +63,15 @@ public class DirectDownloadTask implements DownloadTask {
         try {
             log.info("Download started: {}", downloadInfo.getFilename());
             var downloadFile = buildPartFile();
+            var finalOutputFile = new File(downloadInfo.getFilePath());
             long existingFileSize = downloadFile.length();
             downloadInfo.setDownloadedSize(existingFileSize);
+            lastDownloadedSize.set(downloadInfo.getDownloadedSize());
 
             try (var response = httpClient.newCall(buildGetRequest(existingFileSize)).execute()) {
                 if (!response.isSuccessful()) {
                     throw new IOException("Server returned HTTP response code: %s".formatted(response.code()));
                 }
-
                 var body = response.body();
                 if (body == null || body.contentLength() <= 0) {
                     throw new IOException("No content is returned from server: %s".formatted(downloadInfo.getFilename()));
@@ -65,7 +83,6 @@ public class DirectDownloadTask implements DownloadTask {
                 try (var sink = Okio.buffer(Okio.appendingSink(downloadFile)); var inputStream = body.byteStream()) {
                     var buffer = new byte[8192];
                     int bytesRead;
-                    var lastEmitTime = System.currentTimeMillis();
                     while ((bytesRead = inputStream.read(buffer)) != -1) {
                         if (paused) {
                             sink.flush();
@@ -80,12 +97,13 @@ public class DirectDownloadTask implements DownloadTask {
                         sink.write(buffer, 0, bytesRead);
 
                         downloadInfo.setDownloadedSize(downloadInfo.getDownloadedSize() + bytesRead);
-                        downloadInfo.updateProgress();
 
-                        lastEmitTime = emitProgressWithInterval(lastEmitTime);
+                        updateProgress();
+                        updateDownloadSpeedAndTimeRemaining();
+                        emitProgressWithInterval();
                     }
                     sink.flush();
-                    FileUtils.moveFile(downloadFile, new File(downloadInfo.getFilePath()), StandardCopyOption.REPLACE_EXISTING);
+                    Files.move(downloadFile.toPath(), finalOutputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     downloadInfo.setStatus(DownloadStatus.COMPLETED);
                     emitNextVersion();
                     log.info("Download completed: {}", downloadInfo.getFilename());
@@ -100,13 +118,65 @@ public class DirectDownloadTask implements DownloadTask {
         }
     }
 
-    private long emitProgressWithInterval(long lastEmitTime) {
-        var now = System.currentTimeMillis();
-        if (now - lastEmitTime >= 500) {
-            emitNextVersion();
-            return now;
+    private void updateProgress() {
+        if (downloadInfo.getTotalSize() == 0) {
+            downloadInfo.setProgress(0);
+        } else {
+            var percent = (double) downloadInfo.getDownloadedSize() / downloadInfo.getTotalSize() * 100;
+            downloadInfo.setProgress(Math.round(percent * 10) / 10.0);
         }
-        return lastEmitTime;
+    }
+
+    private void emitProgressWithInterval() {
+        var currentTime = System.currentTimeMillis();
+        if (currentTime - lastProgressUpdateTime.get() >= PROGRESS_UPDATE_INTERVAL_MS) {
+            emitNextVersion();
+            lastProgressUpdateTime.set(currentTime);
+        }
+    }
+
+    private void updateDownloadSpeedAndTimeRemaining() {
+        var currentTime = System.currentTimeMillis();
+        var timeDelta = currentTime - lastSpeedCalculationTime.get();
+        if (timeDelta >= SPEED_CALCULATION_INTERVAL_MS) {
+            var currentSize = downloadInfo.getDownloadedSize();
+            var lastSize = lastDownloadedSize.get();
+
+            //calculate speed
+            long bytesDelta = currentSize - lastSize;
+            long speedBytesPerSecond = (bytesDelta * 1000) / timeDelta;
+            //calculate average speed and update
+            updateSpeedWithRollingAverage(speedBytesPerSecond);
+
+            // Calculate estimated time remaining
+            calculateEstimatedTime(speedBytesPerSecond, currentSize);
+
+            lastDownloadedSize.set(currentSize);
+            lastSpeedCalculationTime.set(currentTime);
+        }
+    }
+
+    private void calculateEstimatedTime(long speedBytesPerSecond, long currentSize) {
+        if (downloadInfo.getTotalSize() > 0 && speedBytesPerSecond > 0) {
+            long remainingBytes = downloadInfo.getTotalSize() - currentSize;
+            long timeRemainingSeconds = remainingBytes / speedBytesPerSecond;
+            downloadInfo.setTimeRemaining(timeRemainingSeconds);
+        }
+    }
+
+    private void updateSpeedWithRollingAverage(long currentSpeedBytesPerSecond) {
+        if (speedSampleCount.get() < MAX_SPEED_SAMPLES) {
+            long averageSpeed = speedSum.addAndGet(currentSpeedBytesPerSecond) / speedSampleCount.incrementAndGet();
+            downloadInfo.setSpeed(averageSpeed);
+        } else {
+            long currentSum = speedSum.get();
+            long oldAverage = currentSum / MAX_SPEED_SAMPLES;
+            long newSum = currentSum - oldAverage + currentSpeedBytesPerSecond;
+            speedSum.set(newSum);
+
+            long rollingAverage = newSum / MAX_SPEED_SAMPLES;
+            downloadInfo.setSpeed(rollingAverage);
+        }
     }
 
     private Request buildGetRequest(long existingFileSize) {
