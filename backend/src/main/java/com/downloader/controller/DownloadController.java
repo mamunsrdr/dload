@@ -14,6 +14,7 @@ import reactor.core.publisher.Flux;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/downloads")
+@CrossOrigin(origins = "*")
 public class DownloadController {
 
     private final DownloadService downloadService;

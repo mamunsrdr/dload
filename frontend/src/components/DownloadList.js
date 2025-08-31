@@ -1,7 +1,7 @@
 import React from 'react';
 import DownloadItem from './DownloadItem';
 
-const DownloadList = ({ downloads, onCancelDownload }) => {
+const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDownload }) => {
   if (downloads.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
@@ -19,14 +19,13 @@ const DownloadList = ({ downloads, onCancelDownload }) => {
   }
 
   const sortedDownloads = [...downloads].sort((a, b) => {
-    // Sort by status priority: DOWNLOADING > PENDING > STARTING > COMPLETED > FAILED/CANCELLED
+    // Sort by status priority: DOWNLOADING > QUEUED > PAUSED > COMPLETED > FAILED
     const statusPriority = {
       'DOWNLOADING': 1,
-      'PENDING': 2,
-      'STARTING': 3,
+      'QUEUED': 2,
+      'PAUSED': 3,
       'COMPLETED': 4,
-      'FAILED': 5,
-      'CANCELLED': 5
+      'FAILED': 5
     };
     
     const priorityA = statusPriority[a.status] || 6;
@@ -36,8 +35,8 @@ const DownloadList = ({ downloads, onCancelDownload }) => {
       return priorityA - priorityB;
     }
     
-    // If same priority, sort by start time (newest first)
-    return new Date(b.startTime) - new Date(a.startTime);
+    // If same priority, sort by version (newest updates first)
+    return b.version - a.version;
   });
 
   return (
@@ -50,7 +49,7 @@ const DownloadList = ({ downloads, onCancelDownload }) => {
         {downloads.length > 0 && (
           <div className="flex items-center space-x-4 text-sm">
             <span className="text-gray-500">
-              {downloads.filter(d => d.status === 'DOWNLOADING' || d.status === 'STARTING' || d.status === 'PENDING').length} active
+              {downloads.filter(d => d.status === 'DOWNLOADING' || d.status === 'QUEUED').length} active
             </span>
             <span className="text-gray-500">
               {downloads.filter(d => d.status === 'COMPLETED').length} completed
@@ -65,6 +64,8 @@ const DownloadList = ({ downloads, onCancelDownload }) => {
             key={download.id}
             download={download}
             onCancel={onCancelDownload}
+            onPause={onPauseDownload}
+            onResume={onResumeDownload}
           />
         ))}
       </div>

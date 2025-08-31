@@ -26,10 +26,9 @@ function App() {
     });
 
     // Close SSE connection if download is complete
-    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(downloadStatus.status)) {
+    if (['COMPLETED', 'FAILED'].includes(downloadStatus.status)) {
       const eventSource = eventSources[downloadStatus.id];
       if (eventSource) {
-        console.log('Closing SSE connection for completed download:', downloadStatus.id);
         eventSource.close();
         setEventSources(prev => {
           const newEventSources = { ...prev };
@@ -43,7 +42,7 @@ function App() {
   const fetchDownloadsList = async () => {
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-      const response = await fetch(`${apiUrl}/api/downloads/list`);
+      const response = await fetch(`${apiUrl}/api/downloads`);
       if (response.ok) {
         const downloadsList = await response.json();
         setDownloads(downloadsList);
@@ -62,55 +61,51 @@ function App() {
     }
 
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-    const eventSource = new EventSource(`${apiUrl}/api/downloads/stream/${downloadId}`);
-    
-    eventSource.onmessage = (event) => {
+    const sseUrl = `${apiUrl}/api/downloads/${downloadId}/stream`;
+    const eventSource = new EventSource(sseUrl);
+
+    // Add specific handler for 'progress' events
+    eventSource.addEventListener('progress', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('SSE message received for', downloadId, ':', data.status);
         updateDownload(data);
       } catch (error) {
-        console.error('Error parsing SSE data:', error);
+        console.error('Error parsing progress event data:', error);
       }
-    };
+    });
 
     eventSource.onerror = (error) => {
       console.error('SSE Error for', downloadId, ':', error);
-      eventSource.close();
-      setEventSources(prev => {
-        const newEventSources = { ...prev };
-        delete newEventSources[downloadId];
-        return newEventSources;
-      });
-      
-      // Don't automatically fetch list on SSE error - let it rely on manual triggers or completion
-      console.log('SSE connection lost for', downloadId, '- will reconnect if download is still active');
-    };
 
-    eventSource.onopen = () => {
-      console.log('SSE connection opened for download:', downloadId);
+      // Don't close immediately, let browser handle reconnection
+      if (eventSource.readyState === EventSource.CLOSED) {
+        setEventSources(prev => {
+          const newEventSources = { ...prev };
+          delete newEventSources[downloadId];
+          return newEventSources;
+        });
+      }
     };
 
     setEventSources(prev => ({
       ...prev,
       [downloadId]: eventSource
     }));
-  };
-
-  useEffect(() => {
+  };  useEffect(() => {
     // Fetch existing downloads on component mount
     const initializeDownloads = async () => {
       const existingDownloads = await fetchDownloadsList();
-      
+
       // Set up SSE connections for active downloads
       existingDownloads.forEach(download => {
-        if (download.status === 'DOWNLOADING' || download.status === 'STARTING' || download.status === 'PENDING') {
+        if (download.status === 'DOWNLOADING' || download.status === 'QUEUED') {
           setupSSEConnection(download.id);
         }
       });
     };
 
     initializeDownloads();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
   useEffect(() => {
@@ -125,59 +120,95 @@ function App() {
   // Update stats whenever downloads change
   useEffect(() => {
     const total = downloads.length;
-    const active = downloads.filter(d => d.status === 'DOWNLOADING' || d.status === 'STARTING' || d.status === 'PENDING').length;
+    const active = downloads.filter(d => d.status === 'DOWNLOADING' || d.status === 'QUEUED').length;
     const completed = downloads.filter(d => d.status === 'COMPLETED').length;
-    const failed = downloads.filter(d => d.status === 'FAILED' || d.status === 'CANCELLED').length;
-    
+    const failed = downloads.filter(d => d.status === 'FAILED').length;
+
     setStats({ total, active, completed, failed });
   }, [downloads]);
 
-  const handleDownloadStart = async (downloadId) => {
+  const handleDownloadStart = async (downloadInfo) => {
     try {
-      // First, fetch the initial download status and add it to the list immediately
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-      const statusResponse = await fetch(`${apiUrl}/api/downloads/status/${downloadId}`);
-      
-      if (statusResponse.ok) {
-        const downloadStatus = await statusResponse.json();
-        updateDownload(downloadStatus);
-        console.log('Download started:', downloadId, 'Status:', downloadStatus.status);
-      }
+      // Add the download to the list immediately
+      updateDownload(downloadInfo);
+
+      // Set up SSE connection for this download
+      setupSSEConnection(downloadInfo.id);
     } catch (error) {
-      console.error('Error fetching initial download status:', error);
+      console.error('Error handling download start:', error);
     }
-
-    // Set up SSE connection for this download
-    setupSSEConnection(downloadId);
-  };
-
-  const handleCancelDownload = async (downloadId) => {
+  };  const handleCancelDownload = async (downloadId) => {
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-      await fetch(`${apiUrl}/api/downloads/cancel/${downloadId}`, {
+      const response = await fetch(`${apiUrl}/api/downloads/${downloadId}`, {
         method: 'DELETE'
       });
+
+      if (response.ok) {
+        // Remove from downloads list
+        setDownloads(prev => prev.filter(d => d.id !== downloadId));
+
+        // Close and remove SSE connection
+        const eventSource = eventSources[downloadId];
+        if (eventSource) {
+          eventSource.close();
+          setEventSources(prev => {
+            const newEventSources = { ...prev };
+            delete newEventSources[downloadId];
+            return newEventSources;
+          });
+        }
+      }
     } catch (error) {
       console.error('Error cancelling download:', error);
+    }
+  };
+
+  const handlePauseDownload = async (downloadId) => {
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      await fetch(`${apiUrl}/api/downloads/${downloadId}/pause`, {
+        method: 'POST'
+      });
+    } catch (error) {
+      console.error('Error pausing download:', error);
+    }
+  };
+
+  const handleResumeDownload = async (downloadId) => {
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      await fetch(`${apiUrl}/api/downloads/${downloadId}/resume`, {
+        method: 'POST'
+      });
+
+      // Set up SSE connection if not already active
+      if (!eventSources[downloadId]) {
+        setupSSEConnection(downloadId);
+      }
+    } catch (error) {
+      console.error('Error resuming download:', error);
     }
   };
 
   return (
     <div className="min-h-screen bg-black">
       <Header stats={stats} />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Download Form */}
           <div className="lg:col-span-1">
             <DownloadForm onDownloadStart={handleDownloadStart} />
           </div>
-          
+
           {/* Downloads List */}
           <div className="lg:col-span-2">
-            <DownloadList 
-              downloads={downloads} 
+            <DownloadList
+              downloads={downloads}
               onCancelDownload={handleCancelDownload}
+              onPauseDownload={handlePauseDownload}
+              onResumeDownload={handleResumeDownload}
             />
           </div>
         </div>

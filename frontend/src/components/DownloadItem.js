@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DownloadItem = ({ download, onCancel }) => {
+const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
   const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -13,14 +13,25 @@ const DownloadItem = ({ download, onCancel }) => {
     return formatBytes(bytesPerSecond) + '/s';
   };
 
-  const formatTime = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleTimeString();
+  const formatTimeRemaining = (seconds) => {
+    if (!seconds || seconds <= 0) return 'N/A';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'QUEUED':
         return (
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -33,10 +44,10 @@ const DownloadItem = ({ download, onCancel }) => {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
         );
-      case 'STARTING':
+      case 'PAUSED':
         return (
           <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       case 'COMPLETED':
@@ -51,12 +62,6 @@ const DownloadItem = ({ download, onCancel }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         );
-      case 'CANCELLED':
-        return (
-          <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
-          </svg>
-        );
       default:
         return null;
     }
@@ -64,25 +69,25 @@ const DownloadItem = ({ download, onCancel }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'QUEUED':
         return 'bg-gray-900/50 text-gray-300 border-gray-600';
       case 'DOWNLOADING':
         return 'bg-blue-900/50 text-blue-300 border-blue-700';
-      case 'STARTING':
+      case 'PAUSED':
         return 'bg-yellow-900/50 text-yellow-300 border-yellow-700';
       case 'COMPLETED':
         return 'bg-green-900/50 text-green-300 border-green-700';
       case 'FAILED':
         return 'bg-red-900/50 text-red-300 border-red-700';
-      case 'CANCELLED':
-        return 'bg-orange-900/50 text-orange-300 border-orange-700';
       default:
         return 'bg-gray-900/50 text-gray-300 border-gray-700';
     }
   };
 
-  const canCancel = download.status === 'DOWNLOADING' || download.status === 'STARTING' || download.status === 'PENDING';
-  const isActive = canCancel;
+  const canCancel = download.status === 'DOWNLOADING' || download.status === 'QUEUED' || download.status === 'PAUSED';
+  const canPause = download.status === 'DOWNLOADING';
+  const canResume = download.status === 'PAUSED';
+  const isActive = download.status === 'DOWNLOADING' || download.status === 'QUEUED';
   const progress = download.progress || 0;
 
   return (
@@ -102,21 +107,41 @@ const DownloadItem = ({ download, onCancel }) => {
               {download.status}
             </span>
             {download.totalSize > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-sm font-semibold text-gray-300 bg-gray-800 px-2 py-1 rounded-md">
                 {formatBytes(download.totalSize)}
               </span>
             )}
           </div>
         </div>
 
-        {canCancel && (
-          <button
-            onClick={() => onCancel(download.id)}
-            className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200 ml-4"
-          >
-            Cancel
-          </button>
-        )}
+        <div className="flex items-center space-x-2">
+          {canResume && (
+            <button
+              onClick={() => onResume(download.id)}
+              className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200"
+            >
+              Resume
+            </button>
+          )}
+          
+          {canPause && (
+            <button
+              onClick={() => onPause(download.id)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200"
+            >
+              Pause
+            </button>
+          )}
+
+          {canCancel && (
+            <button
+              onClick={() => onCancel(download.id)}
+              className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -136,7 +161,7 @@ const DownloadItem = ({ download, onCancel }) => {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         {download.speed > 0 && (
           <div>
             <span className="text-gray-500 block">Speed</span>
@@ -151,23 +176,12 @@ const DownloadItem = ({ download, onCancel }) => {
           </div>
         )}
         
-        <div>
-          <span className="text-gray-500 block">Started</span>
-          <span className="text-gray-300 font-medium">{formatTime(download.startTime)}</span>
-        </div>
-        
-        {download.endTime && (
+        {download.timeRemaining > 0 && isActive && (
           <div>
-            <span className="text-gray-500 block">Finished</span>
-            <span className="text-gray-300 font-medium">{formatTime(download.endTime)}</span>
+            <span className="text-gray-500 block">Time Left</span>
+            <span className="text-gray-300 font-medium">{formatTimeRemaining(download.timeRemaining)}</span>
           </div>
         )}
-      </div>
-
-      {/* URL */}
-      <div className="mt-4 pt-4 border-t border-gray-800">
-        <span className="text-gray-500 text-xs block mb-1">URL</span>
-        <p className="text-gray-400 text-xs break-all">{download.url}</p>
       </div>
 
       {/* Error Message */}

@@ -3,14 +3,15 @@ import React, { useState } from 'react';
 const DownloadForm = ({ onDownloadStart }) => {
   const [url, setUrl] = useState('');
   const [filename, setFilename] = useState('');
+  const [outputPath, setOutputPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!url.trim() || !filename.trim()) {
-      setError('Please fill in all fields');
+    if (!url.trim() || !outputPath.trim()) {
+      setError('Please provide URL and output path');
       return;
     }
 
@@ -19,14 +20,15 @@ const DownloadForm = ({ onDownloadStart }) => {
 
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-      const response = await fetch(`${apiUrl}/api/downloads/start`, {
+      const response = await fetch(`${apiUrl}/api/downloads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           url: url.trim(),
-          filename: filename.trim()
+          filename: filename.trim() || undefined,
+          outputPath: outputPath.trim()
         })
       });
 
@@ -34,12 +36,13 @@ const DownloadForm = ({ onDownloadStart }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const downloadId = await response.text();
-      onDownloadStart(downloadId);
+      const downloadInfo = await response.json();
+      onDownloadStart(downloadInfo);
       
       // Reset form
       setUrl('');
       setFilename('');
+      setOutputPath('');
     } catch (error) {
       console.error('Error starting download:', error);
       setError('Failed to start download. Please check the URL and try again.');
@@ -48,28 +51,10 @@ const DownloadForm = ({ onDownloadStart }) => {
     }
   };
 
-  const extractFilename = (url) => {
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const filename = pathname.split('/').pop();
-      return filename || 'download';
-    } catch (error) {
-      return 'download';
-    }
-  };
-
   const handleUrlChange = (e) => {
     const newUrl = e.target.value;
     setUrl(newUrl);
-    
-    // Auto-suggest filename if not already set
-    if (newUrl && !filename) {
-      const suggestedFilename = extractFilename(newUrl);
-      if (suggestedFilename && suggestedFilename !== 'download') {
-        setFilename(suggestedFilename);
-      }
-    }
+    // Removed auto-filename suggestion
   };
 
   return (
@@ -102,18 +87,54 @@ const DownloadForm = ({ onDownloadStart }) => {
         
         <div>
           <label htmlFor="filename" className="block text-sm font-medium text-gray-400 mb-2">
-            Filename
+            Filename <span className="text-gray-500 text-xs">(optional)</span>
           </label>
           <input
             type="text"
             id="filename"
             value={filename}
             onChange={(e) => setFilename(e.target.value)}
-            placeholder="my-file.zip"
-            required
+            placeholder="Leave empty for auto-detection"
             disabled={loading}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            If not provided, filename will be automatically detected from the URL or server response
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="outputPath" className="block text-sm font-medium text-gray-400 mb-2">
+            Download Directory
+          </label>
+          <div className="space-y-2">
+            <input
+              type="text"
+              id="outputPath"
+              value={outputPath}
+              onChange={(e) => setOutputPath(e.target.value)}
+              placeholder="/downloads"
+              required
+              disabled={loading}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+            />
+            <div className="flex flex-wrap gap-2">
+              {['/downloads', '/tmp', '/Users/Downloads'].map((path) => (
+                <button
+                  key={path}
+                  type="button"
+                  onClick={() => setOutputPath(path)}
+                  disabled={loading}
+                  className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors duration-200 disabled:opacity-50"
+                >
+                  {path}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">
+              Specify the directory where the file will be saved
+            </p>
+          </div>
         </div>
 
         {error && (

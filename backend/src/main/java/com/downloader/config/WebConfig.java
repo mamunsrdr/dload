@@ -17,4 +17,15 @@ public class WebConfig implements WebMvcConfigurer {
     public void configureAsyncSupport(@NotNull AsyncSupportConfigurer configurer) {
         configurer.setTaskExecutor(new ConcurrentTaskExecutor(executorService));
     }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "DELETE", "PUT", "OPTIONS")
+                .allowedHeaders("*")
+                .exposedHeaders("Cache-Control", "Content-Language", "Content-Type",
+                    "Expires", "Last-Modified", "Pragma")
+                .allowCredentials(false);
+    }
 }

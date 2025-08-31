@@ -60,7 +60,8 @@ public class DownloadService {
             .ifPresent(task -> {
                 log.info("Paused download task: {}", id);
                 task.pause();
-                removeDownloadTask(id);
+                executions.remove(id);
+                tasks.remove(id);
             });
     }
 
@@ -75,26 +76,27 @@ public class DownloadService {
     }
 
     public void cancel(String id) {
+        //if it's a running download, there's execution
         Optional
             .ofNullable(executions.get(id))
             .ifPresent(exec -> {
                 log.info("Canceling download task: {}", id);
                 exec.cancel(true);
-                downloads.remove(id);
-                var task = removeDownloadTask(id);
-                task.cleanup();
+                executions.remove(id);
+                Optional
+                    .ofNullable(tasks.remove(id))
+                    .ifPresent(DownloadTask::cleanup);
             });
+        //if it's a paused download, there's no execution
+        Optional
+            .ofNullable(downloads.remove(id))
+            .ifPresent(d -> buildDownloadTask(d).cleanup());
     }
 
     private void startDownloadTask(DownloadInfo downloadInfo) {
         var downloadTask = buildDownloadTask(downloadInfo);
         tasks.put(downloadInfo.getId(), downloadTask);
         executions.put(downloadInfo.getId(), executor.submit(downloadTask));
-    }
-
-    private DownloadTask removeDownloadTask(String id) {
-        executions.remove(id);
-        return tasks.remove(id);
     }
 
     private DownloadTask buildDownloadTask(DownloadInfo downloadInfo) {
