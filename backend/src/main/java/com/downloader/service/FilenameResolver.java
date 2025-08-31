@@ -60,7 +60,9 @@ public class FilenameResolver {
 
     private Optional<String> parseFromUrl(String url) {
         var path = UriComponentsBuilder.fromUriString(url).build().getPath();
-        return Optional.ofNullable(StringUtils.trimToNull(FilenameUtils.getName(path)));
+        return Optional
+            .ofNullable(StringUtils.trimToNull(FilenameUtils.getName(path)))
+            .filter(filename -> !FilenameUtils.getExtension(filename).isEmpty());
     }
 
     //Content-Disposition: attachment; filename*=UTF-8''%E4%BE%8B%E5%AD%90.txt

@@ -17,7 +17,7 @@ import static com.downloader.config.AppConstants.FILEPART_FORMAT;
 @Slf4j
 public class DirectDownloadTask implements DownloadTask {
 
-    private static final int MAX_SPEED_SAMPLES = 5;
+    private static final int MAX_SPEED_SAMPLES = 10;
     private static final long PROGRESS_UPDATE_INTERVAL_MS = 500;
     private static final long SPEED_CALCULATION_INTERVAL_MS = 1000;
 
@@ -149,14 +149,14 @@ public class DirectDownloadTask implements DownloadTask {
             updateSpeedWithRollingAverage(speedBytesPerSecond);
 
             // Calculate estimated time remaining
-            calculateEstimatedTime(speedBytesPerSecond, currentSize);
+            updateEstimatedTime(downloadInfo.getSpeed(), currentSize);
 
             lastDownloadedSize.set(currentSize);
             lastSpeedCalculationTime.set(currentTime);
         }
     }
 
-    private void calculateEstimatedTime(long speedBytesPerSecond, long currentSize) {
+    private void updateEstimatedTime(long speedBytesPerSecond, long currentSize) {
         if (downloadInfo.getTotalSize() > 0 && speedBytesPerSecond > 0) {
             long remainingBytes = downloadInfo.getTotalSize() - currentSize;
             long timeRemainingSeconds = remainingBytes / speedBytesPerSecond;
