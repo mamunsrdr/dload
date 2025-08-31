@@ -24,6 +24,7 @@ public class DownloadController {
     }
 
     @PostMapping
+    @SuppressWarnings("JvmTaintAnalysis")
     public DownloadInfo add(@RequestBody DownloadRequest request) {
         return downloadService.add(request);
     }
