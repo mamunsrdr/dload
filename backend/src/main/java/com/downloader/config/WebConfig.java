@@ -1,12 +1,12 @@
 package com.downloader.config;
 
 import java.util.Arrays;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.scheduling.concurrent.ConcurrentTaskExecutor;
+import org.springframework.core.task.support.TaskExecutorAdapter;
 import org.springframework.web.servlet.config.annotation.*;
 
 @Configuration
@@ -18,7 +18,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void configureAsyncSupport(@NotNull AsyncSupportConfigurer configurer) {
-        configurer.setTaskExecutor(new ConcurrentTaskExecutor(executorService));
+        var virtualThreadExecutor = new TaskExecutorAdapter(executorService);
+        configurer.setTaskExecutor(virtualThreadExecutor);
     }
 
     @Override

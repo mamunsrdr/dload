@@ -15,11 +15,11 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
 
   const formatTimeRemaining = (seconds) => {
     if (!seconds || seconds <= 0) return 'N/A';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     } else if (minutes > 0) {
@@ -46,7 +46,7 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
         );
       case 'PAUSED':
         return (
-          <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
@@ -74,7 +74,7 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
       case 'DOWNLOADING':
         return 'bg-blue-900/50 text-blue-300 border-blue-700';
       case 'PAUSED':
-        return 'bg-yellow-900/50 text-yellow-300 border-yellow-700';
+        return 'bg-gray-600 text-yellow-500 border-yellow-700';
       case 'COMPLETED':
         return 'bg-green-900/50 text-green-300 border-green-700';
       case 'FAILED':
@@ -91,109 +91,106 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
   const progress = download.progress || 0;
 
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-lg p-6 ${isActive ? 'ring-2 ring-blue-500/20' : ''} animate-fade-in`}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-3 mb-2">
-            {getStatusIcon(download.status)}
-            <h3 className="text-sm font-medium text-gray-100 truncate">
-              {download.filename}
-            </h3>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${getStatusColor(download.status)}`}>
-              {download.status}
-            </span>
-            {download.totalSize > 0 && (
-              <span className="text-sm font-semibold text-gray-300 bg-gray-800 px-2 py-1 rounded-md">
-                {formatBytes(download.totalSize)}
-              </span>
-            )}
-          </div>
+    <div className="bg-gray-900 rounded-md p-5 mb-2">
+      {/* Header with filename and actions */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2 flex-1 min-w-0">
+          {getStatusIcon(download.status)}
+          <h3 className="text-sm text-gray-300 truncate">
+            {download.filename}
+          </h3>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center ml-4">
           {canResume && (
             <button
               onClick={() => onResume(download.id)}
-              className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200"
+              className="p-1 hover:bg-gray-600 rounded text-sm transition-colors duration-200"
+              title="Resume"
             >
-              Resume
+              <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM10 16.5v-9l6 4.5-6 4.5z"/>
+              </svg>
             </button>
           )}
-          
+
           {canPause && (
             <button
               onClick={() => onPause(download.id)}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200"
+              className="p-1 hover:bg-gray-600 text-sm rounded transition-colors duration-200"
+              title="Pause"
             >
-              Pause
+              <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 15 15">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 5v5m5-5v5" />
+              </svg>
             </button>
           )}
 
           {canCancel && (
             <button
               onClick={() => onCancel(download.id)}
-              className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded-lg transition-colors duration-200"
+              className="p-1 hover:bg-gray-600 rounded text-sm transition-colors duration-200"
+              title="Cancel"
             >
-              Cancel
+              <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Status and size info */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getStatusColor(download.status)}`}>
+            {download.status}
+          </span>
+          {download.totalSize > 0 && download.status === 'PAUSED' && (
+            <span className="text-sm text-gray-400">
+              {formatBytes(download.totalSize)}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-4 text-xs text-gray-400">
+          {download.speed > 0 && (
+            <span>↓ {formatSpeed(download.speed)}</span>
+          )}
+          {download.timeRemaining > 0 && isActive && (
+            <span>{formatTimeRemaining(download.timeRemaining)} Remaining</span>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
       {isActive && (
-        <div className="mb-4">
+        <div className="mb-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Progress</span>
-            <span className="text-sm font-medium text-gray-300">{progress.toFixed(1)}%</span>
+            <span className="text-xs text-gray-400">
+              {download.downloadedSize > 0 ? formatBytes(download.downloadedSize) : '0 B'} / {download.totalSize > 0 ? formatBytes(download.totalSize) : 'Unknown'}
+            </span>
+            <span className="text-xs font-medium text-gray-300">{progress.toFixed(1)}%</span>
           </div>
-          <div className="bg-gray-800 rounded-full h-2">
+          <div className="bg-gray-700 rounded-full h-1.5">
             <div
-              className="bg-blue-600 h-full rounded-full transition-all duration-300"
+              className="bg-blue-500 h-full rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-        {download.speed > 0 && (
-          <div>
-            <span className="text-gray-500 block">Speed</span>
-            <span className="text-gray-300 font-medium">{formatSpeed(download.speed)}</span>
-          </div>
-        )}
-        
-        {download.downloadedSize > 0 && (
-          <div>
-            <span className="text-gray-500 block">Downloaded</span>
-            <span className="text-gray-300 font-medium">{formatBytes(download.downloadedSize)}</span>
-          </div>
-        )}
-        
-        {download.timeRemaining > 0 && isActive && (
-          <div>
-            <span className="text-gray-500 block">Time Left</span>
-            <span className="text-gray-300 font-medium">{formatTimeRemaining(download.timeRemaining)}</span>
-          </div>
-        )}
-      </div>
-
       {/* Error Message */}
       {download.error && (
-        <div className="mt-4 bg-red-900/30 border border-red-700 rounded-lg p-3">
+        <div className="mt-3 bg-red-900/30 border border-red-700 rounded p-2">
           <div className="flex items-start space-x-2">
             <svg className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-red-300">Error</p>
-              <p className="text-sm text-red-400 mt-1">{download.error}</p>
+              <p className="text-xs font-medium text-red-300">Error</p>
+              <p className="text-xs text-red-400 mt-1">{download.error}</p>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ import DownloadItem from './DownloadItem';
 const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDownload }) => {
   if (downloads.length === 0) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
+      <div className="bg-gray-900 border border-gray-800 rounded-md p-8">
         <div className="text-center">
           <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,27 +17,6 @@ const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDo
       </div>
     );
   }
-
-  const sortedDownloads = [...downloads].sort((a, b) => {
-    // Sort by status priority: DOWNLOADING > QUEUED > PAUSED > COMPLETED > FAILED
-    const statusPriority = {
-      'DOWNLOADING': 1,
-      'QUEUED': 2,
-      'PAUSED': 3,
-      'COMPLETED': 4,
-      'FAILED': 5
-    };
-    
-    const priorityA = statusPriority[a.status] || 6;
-    const priorityB = statusPriority[b.status] || 6;
-    
-    if (priorityA !== priorityB) {
-      return priorityA - priorityB;
-    }
-    
-    // If same priority, sort by version (newest updates first)
-    return b.version - a.version;
-  });
 
   return (
     <div className="space-y-6">
@@ -59,7 +38,7 @@ const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDo
       </div>
       
       <div className="space-y-4">
-        {sortedDownloads.map((download) => (
+        {downloads.map((download) => (
           <DownloadItem
             key={download.id}
             download={download}
