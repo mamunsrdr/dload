@@ -84,10 +84,10 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
     }
   };
 
-  const canCancel = download.status === 'DOWNLOADING' || download.status === 'QUEUED' || download.status === 'PAUSED';
   const canPause = download.status === 'DOWNLOADING';
   const canResume = download.status === 'PAUSED';
   const isActive = download.status === 'DOWNLOADING' || download.status === 'QUEUED';
+  const isCompleted = download.status === 'COMPLETED' || download.status === 'FAILED';
   const progress = download.progress || 0;
 
   return (
@@ -126,17 +126,22 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
             </button>
           )}
 
-          {canCancel && (
-            <button
-              onClick={() => onCancel(download.id)}
-              className="p-1 hover:bg-gray-600 rounded text-sm transition-colors duration-200"
-              title="Cancel"
-            >
+          {/* Always show cancel/remove button */}
+          <button
+            onClick={() => onCancel(download.id)}
+            className="p-1 hover:bg-gray-600 rounded text-sm transition-colors duration-200"
+            title={isCompleted ? "Remove from list" : "Cancel download"}
+          >
+            {isCompleted ? (
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            ) : (
               <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
-          )}
+            )}
+          </button>
         </div>
       </div>
 

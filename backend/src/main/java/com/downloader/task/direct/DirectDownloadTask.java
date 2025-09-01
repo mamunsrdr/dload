@@ -63,6 +63,7 @@ public class DirectDownloadTask implements DownloadTask {
         try {
             log.info("Download started: {}", downloadInfo.getFilename());
             var downloadFile = buildPartFile();
+            FileUtils.touch(downloadFile);
             var finalOutputFile = new File(downloadInfo.getFilePath());
             long existingFileSize = downloadFile.length();
             downloadInfo.setDownloadedSize(existingFileSize);
@@ -196,9 +197,7 @@ public class DirectDownloadTask implements DownloadTask {
 
     @SneakyThrows
     private File buildPartFile() {
-        var file = new File(FILEPART_FORMAT.formatted(downloadInfo.getFilePath()));
-        FileUtils.touch(file);
-        return file;
+        return new File(FILEPART_FORMAT.formatted(downloadInfo.getFilePath()));
     }
 
     private void setErrorDetails(Exception e) {
@@ -219,13 +218,13 @@ public class DirectDownloadTask implements DownloadTask {
     }
 
     private void deleteFileIfExists() {
-        var filePath = buildPartFile().toPath();
+        var partfile = buildPartFile();
         try {
-            if (Files.deleteIfExists(filePath)) {
-                log.info("Deleted file: {}", filePath);
+            if (FileUtils.deleteQuietly(partfile)) {
+                log.info("Deleted file: {}", partfile.toPath());
             }
-        } catch (IOException e) {
-            log.error("Failed to delete file: {}", filePath, e);
+        } catch (Exception e) {
+            log.error("Failed to delete file: {}", partfile.toPath(), e);
         }
     }
 }

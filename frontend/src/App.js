@@ -27,17 +27,21 @@ function App() {
 
         // Close SSE connection if download is complete
         if (['COMPLETED', 'FAILED'].includes(downloadStatus.status)) {
-            const eventSource = eventSources[downloadStatus.id];
-            if (eventSource) {
-                eventSource.close();
-                setEventSources(prev => {
-                    const newEventSources = {...prev};
-                    delete newEventSources[downloadStatus.id];
-                    return newEventSources;
-                });
-            }
+            closeEventSource(downloadStatus.id);
         }
     };
+
+    const closeEventSource = (downloadId) => {
+        const eventSource = eventSources[downloadId];
+        if (eventSource) {
+            eventSource.close();
+            setEventSources(prev => {
+                const newEventSources = {...prev};
+                delete newEventSources[downloadId];
+                return newEventSources;
+            });
+        }
+    }
 
     const fetchDownloadsList = async () => {
         try {
@@ -151,19 +155,8 @@ function App() {
             });
 
             if (response.ok) {
-                // Remove from downloads list
                 setDownloads(prev => prev.filter(d => d.id !== downloadId));
-
-                // Close and remove SSE connection
-                const eventSource = eventSources[downloadId];
-                if (eventSource) {
-                    eventSource.close();
-                    setEventSources(prev => {
-                        const newEventSources = {...prev};
-                        delete newEventSources[downloadId];
-                        return newEventSources;
-                    });
-                }
+                closeEventSource(downloadId);
             }
         } catch (error) {
             console.error('Error cancelling download:', error);
