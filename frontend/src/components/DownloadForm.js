@@ -9,7 +9,7 @@ const DownloadForm = ({ onDownloadStart }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!url.trim() || !outputPath.trim()) {
       setError('Please provide URL and output path');
       return;
@@ -38,7 +38,7 @@ const DownloadForm = ({ onDownloadStart }) => {
 
       const downloadInfo = await response.json();
       onDownloadStart(downloadInfo);
-      
+
       // Reset form
       setUrl('');
       setFilename('');
@@ -78,13 +78,12 @@ const DownloadForm = ({ onDownloadStart }) => {
             id="url"
             value={url}
             onChange={handleUrlChange}
-            placeholder="https://example.com/file.zip"
             required
             disabled={loading}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
           />
         </div>
-        
+
         <div>
           <label htmlFor="filename" className="block text-sm font-medium text-gray-400 mb-2">
             Filename <span className="text-gray-500 text-xs">(optional)</span>
@@ -94,7 +93,6 @@ const DownloadForm = ({ onDownloadStart }) => {
             id="filename"
             value={filename}
             onChange={(e) => setFilename(e.target.value)}
-            placeholder="Leave empty for auto-detection"
             disabled={loading}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
           />
@@ -113,13 +111,12 @@ const DownloadForm = ({ onDownloadStart }) => {
               id="outputPath"
               value={outputPath}
               onChange={(e) => setOutputPath(e.target.value)}
-              placeholder="/downloads"
               required
               disabled={loading}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
             />
             <div className="flex flex-wrap gap-2">
-              {['/downloads', '/tmp', '/Users/Downloads'].map((path) => (
+              {['/downloads/movies', '/downloads/tvshows'].map((path) => (
                 <button
                   key={path}
                   type="button"
@@ -148,8 +145,8 @@ const DownloadForm = ({ onDownloadStart }) => {
           </div>
         )}
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-700 disabled:cursor-not-allowed"
           disabled={loading}
         >
