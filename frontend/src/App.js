@@ -5,7 +5,7 @@ import Header from './components/Header';
 
 function App() {
     const [downloads, setDownloads] = useState([]);
-    const [eventSources, setEventSources] = useState({});
+    const [globalEventSource, setGlobalEventSource] = useState(null);
     const [stats, setStats] = useState({
         total: 0,
         active: 0,
@@ -24,24 +24,7 @@ function App() {
                 return [...prev, downloadStatus];
             }
         });
-
-        // Close SSE connection if download is complete
-        if (['COMPLETED', 'FAILED'].includes(downloadStatus.status)) {
-            closeEventSource(downloadStatus.id);
-        }
     };
-
-    const closeEventSource = (downloadId) => {
-        const eventSource = eventSources[downloadId];
-        if (eventSource) {
-            eventSource.close();
-            setEventSources(prev => {
-                const newEventSources = {...prev};
-                delete newEventSources[downloadId];
-                return newEventSources;
-            });
-        }
-    }
 
     const fetchDownloadsList = async () => {
         try {
@@ -58,17 +41,17 @@ function App() {
         return [];
     };
 
-    const setupSSEConnection = (downloadId) => {
-        // Don't create duplicate connections
-        if (eventSources[downloadId]) {
+    const setupGlobalSSEConnection = () => {
+        if (globalEventSource) {
             return;
         }
 
         const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-        const sseUrl = `${apiUrl}/api/downloads/${downloadId}/stream`;
+        const sseUrl = `${apiUrl}/api/downloads/stream`;
+
         const eventSource = new EventSource(sseUrl);
 
-        // Add specific handler for 'progress' events
+        // Listen for 'progress' events for all downloads
         eventSource.addEventListener('progress', (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -79,34 +62,29 @@ function App() {
         });
 
         eventSource.onerror = (error) => {
-            console.error('SSE Error for', downloadId, ':', error);
+            console.error('Global SSE Error:', error);
 
-            // Don't close immediately, let browser handle reconnection
             if (eventSource.readyState === EventSource.CLOSED) {
-                setEventSources(prev => {
-                    const newEventSources = {...prev};
-                    delete newEventSources[downloadId];
-                    return newEventSources;
-                });
+                setGlobalEventSource(null);
             }
         };
 
-        setEventSources(prev => ({
-            ...prev,
-            [downloadId]: eventSource
-        }));
+        setGlobalEventSource(eventSource);
+    };
+
+    const closeGlobalSSEConnection = () => {
+        if (globalEventSource) {
+            globalEventSource.close();
+            setGlobalEventSource(null);
+        }
     };
     useEffect(() => {
-        // Fetch existing downloads on component mount
+        // Fetch existing downloads and setup global SSE on component mount
         const initializeDownloads = async () => {
-            const existingDownloads = await fetchDownloadsList();
+            await fetchDownloadsList();
 
-            // Set up SSE connections for active downloads
-            existingDownloads.forEach(download => {
-                if (download.status === 'DOWNLOADING' || download.status === 'QUEUED') {
-                    setupSSEConnection(download.id);
-                }
-            });
+            // Setup single global SSE connection for all downloads
+            setupGlobalSSEConnection();
         };
 
         initializeDownloads();
@@ -114,13 +92,9 @@ function App() {
     }, []); // Only run once on mount
 
     useEffect(() => {
-        // Cleanup event sources on unmount
+        // Cleanup global SSE connection on unmount
         return () => {
-            Object.values(eventSources).forEach(eventSource => {
-                if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
-                    eventSource.close();
-                }
-            });
+            closeGlobalSSEConnection();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -140,14 +114,22 @@ function App() {
             // Add the download to the list immediately
             updateDownload(downloadInfo);
 
-            // Set up SSE connection for this download
-            setupSSEConnection(downloadInfo.id);
+            // No need to setup individual SSE - global stream handles all updates
         } catch (error) {
             console.error('Error handling download start:', error);
         }
     };
 
     const handleCancelDownload = async (downloadId) => {
+        // Find the download to check its status
+        const download = downloads.find(d => d.id === downloadId);
+
+        if (!download) {
+            console.warn(`Download not found: ${downloadId}`);
+            return;
+        }
+
+        // Always request backend to cancel/remove the download first
         try {
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
             const response = await fetch(`${apiUrl}/api/downloads/${downloadId}`, {
@@ -155,8 +137,10 @@ function App() {
             });
 
             if (response.ok) {
+                // Remove from frontend list after successful backend operation
                 setDownloads(prev => prev.filter(d => d.id !== downloadId));
-                closeEventSource(downloadId);
+            } else {
+                console.error(`Failed to cancel download ${downloadId}, status: ${response.status}`);
             }
         } catch (error) {
             console.error('Error cancelling download:', error);
@@ -181,10 +165,7 @@ function App() {
                 method: 'POST'
             });
 
-            // Set up SSE connection if not already active
-            if (!eventSources[downloadId]) {
-                setupSSEConnection(downloadId);
-            }
+            // No need to setup individual SSE - global stream handles all updates
         } catch (error) {
             console.error('Error resuming download:', error);
         }

@@ -159,7 +159,12 @@ const DownloadItem = ({ download, onCancel, onPause, onResume }) => {
         </div>
 
         <div className="flex items-center space-x-4 text-xs text-gray-400">
-          {download.speed > 0 && (
+          {download.totalSize > 0 && download.status === 'COMPLETED' && (
+              <span className="text-sm text-gray-400">
+              {formatBytes(download.totalSize)}
+            </span>
+          )}
+          {download.speed > 0 && download.status === 'DOWNLOADING' && (
             <span>↓ {formatSpeed(download.speed)}</span>
           )}
           {download.timeRemaining > 0 && isActive && (

@@ -80,7 +80,7 @@ public class DownloadService {
         Optional
             .ofNullable(executions.get(id))
             .ifPresent(exec -> {
-                log.info("Canceling download task: {}", id);
+                log.info("Removing download task: {}", id);
                 exec.cancel(true);
                 executions.remove(id);
                 Optional
