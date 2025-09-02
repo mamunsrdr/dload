@@ -1,35 +1,35 @@
-version: '3.8'
-
 services:
-  backend:
+  dload-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+    container_name: dload-backend
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_OPTS: "-Xms256m -Xmx512m"
     volumes:
-      - ./downloads:/app/downloads
+      - /mnt/storage/data/media:/downloads
+    restart: unless-stopped
+    #mem_limit: 512m
+    #cpus: "0.5"
     networks:
       - downloader-network
 
-  frontend:
+  dload-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://localhost:8080
+    container_name: dload-frontend
+    restart: unless-stopped
     depends_on:
-      - backend
+      - dload-backend
     networks:
       - downloader-network
+      - nginx_reverse_proxy_network
 
 networks:
   downloader-network:
     driver: bridge
+  nginx_reverse_proxy_network:
+    external: true
 
-volumes:
-  downloads:

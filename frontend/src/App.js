@@ -3,6 +3,16 @@ import DownloadForm from './components/DownloadForm';
 import DownloadList from './components/DownloadList';
 import Header from './components/Header';
 
+export const getApiUrl = () => {
+    const { protocol, hostname, port } = window.location;
+    const isDev = process.env.NODE_ENV === 'development' || port === '3000';
+    if (isDev) {
+        return `${protocol}//${hostname}:8080`;
+    } else {
+        return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    }
+};
+
 function App() {
     const [downloads, setDownloads] = useState([]);
     const [globalEventSource, setGlobalEventSource] = useState(null);
@@ -28,8 +38,7 @@ function App() {
 
     const fetchDownloadsList = async () => {
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-            const response = await fetch(`${apiUrl}/api/downloads`);
+            const response = await fetch(`${getApiUrl()}/api/downloads`);
             if (response.ok) {
                 const downloadsList = await response.json();
                 setDownloads(downloadsList);
@@ -45,9 +54,7 @@ function App() {
         if (globalEventSource) {
             return;
         }
-
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-        const sseUrl = `${apiUrl}/api/downloads/stream`;
+        const sseUrl = `${getApiUrl()}/api/downloads/stream`;
 
         const eventSource = new EventSource(sseUrl);
 
@@ -131,8 +138,7 @@ function App() {
 
         // Always request backend to cancel/remove the download first
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-            const response = await fetch(`${apiUrl}/api/downloads/${downloadId}`, {
+            const response = await fetch(`${getApiUrl()}/api/downloads/${downloadId}`, {
                 method: 'DELETE'
             });
 
@@ -149,8 +155,7 @@ function App() {
 
     const handlePauseDownload = async (downloadId) => {
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-            await fetch(`${apiUrl}/api/downloads/${downloadId}/pause`, {
+            await fetch(`${getApiUrl()}/api/downloads/${downloadId}/pause`, {
                 method: 'POST'
             });
         } catch (error) {
@@ -160,8 +165,7 @@ function App() {
 
     const handleResumeDownload = async (downloadId) => {
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-            await fetch(`${apiUrl}/api/downloads/${downloadId}/resume`, {
+            await fetch(`${getApiUrl()}/api/downloads/${downloadId}/resume`, {
                 method: 'POST'
             });
 

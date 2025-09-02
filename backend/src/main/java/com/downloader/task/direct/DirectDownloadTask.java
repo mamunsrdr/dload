@@ -18,7 +18,7 @@ import static com.downloader.config.AppConstants.FILEPART_FORMAT;
 public class DirectDownloadTask implements DownloadTask {
 
     private static final int MAX_SPEED_SAMPLES = 10;
-    private static final long PROGRESS_UPDATE_INTERVAL_MS = 500;
+    private static final long PROGRESS_UPDATE_INTERVAL_MS = 400;
     private static final long SPEED_CALCULATION_INTERVAL_MS = 1000;
 
     private volatile boolean paused = false;
@@ -82,7 +82,7 @@ public class DirectDownloadTask implements DownloadTask {
                 emitNextVersion();
 
                 try (var sink = Okio.buffer(Okio.appendingSink(downloadFile)); var inputStream = body.byteStream()) {
-                    var buffer = new byte[8192];
+                    var buffer = new byte[65536];
                     int bytesRead;
                     while ((bytesRead = inputStream.read(buffer)) != -1) {
                         if (paused) {

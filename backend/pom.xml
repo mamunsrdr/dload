@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.home</groupId>
-    <artifactId>downloader</artifactId>
+    <artifactId>dload</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>downloader</name>
+    <name>dload</name>
     <properties>
         <java.version>21</java.version>
     </properties>
@@ -58,7 +58,7 @@
     </dependencies>
 
     <build>
-        <finalName>downloader</finalName>
+        <finalName>dload</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

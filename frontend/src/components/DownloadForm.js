@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import {getApiUrl} from "../App";
 
 const DownloadForm = ({ onDownloadStart }) => {
   const [url, setUrl] = useState('');
@@ -19,8 +20,7 @@ const DownloadForm = ({ onDownloadStart }) => {
     setError('');
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-      const response = await fetch(`${apiUrl}/api/downloads`, {
+      const response = await fetch(`${getApiUrl()}/api/downloads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
