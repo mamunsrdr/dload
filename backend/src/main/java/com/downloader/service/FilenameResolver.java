@@ -62,6 +62,13 @@ public class FilenameResolver {
         var path = UriComponentsBuilder.fromUriString(url).build().getPath();
         return Optional
             .ofNullable(StringUtils.trimToNull(FilenameUtils.getName(path)))
+            .map(name -> {
+                try {
+                    return URLDecoder.decode(name, StandardCharsets.UTF_8);
+                } catch (Exception e) {
+                    return name;
+                }
+            })
             .filter(filename -> !FilenameUtils.getExtension(filename).isEmpty());
     }
 

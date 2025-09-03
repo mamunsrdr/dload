@@ -9,6 +9,51 @@ A modern full-stack web application for downloading files with real-time progres
 - **For Native Mode**: Java 21+, Maven 3.6+, Node.js 18+, npm
 - **For Docker Mode**: Docker and Docker Compose
 
+### Deploy
+`docker-compose up -d --build`
+
+### NOTE: If you are running behind a proxy manage like nginx:
+```
+# SSE-specific configuration for Nginx Proxy Manager
+location /api/downloads/stream {
+    proxy_pass $forward_scheme://$server:$port;
+    
+    # Critical: Disable ALL buffering
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_cache off;
+    
+    # SSE headers
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Upgrade $http_upgrade;
+    
+    # Prevent caching
+    proxy_set_header Cache-Control "no-cache, no-store, must-revalidate";
+    proxy_set_header Pragma "no-cache";
+    proxy_set_header Expires "0";
+    
+    # Critical for SSE streaming
+    add_header X-Accel-Buffering "no";
+    
+    # Long timeout for streaming
+    proxy_read_timeout 24h;
+    proxy_connect_timeout 30s;
+    proxy_send_timeout 30s;
+    
+    # No compression
+    gzip off;
+}
+
+# Regular API endpoints
+location /api/ {
+    proxy_pass $forward_scheme://$server:$port;
+    proxy_buffering off;
+    proxy_request_buffering off;
+}
+```
+
+
 ## API Endpoints
 
 ### Download Management
