@@ -38,9 +38,10 @@ const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDo
       {downloads.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 rounded-md p-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 4v12"/>
+                <path d="M6 10l6 6 6-6"/>
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-300 mb-2">No tasks in hand</h3>

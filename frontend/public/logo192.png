@@ -1,0 +1,16 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="96" cy="96" r="96" fill="#2563eb"/>
+  
+  <!-- Download Icon -->
+  <g transform="translate(48, 36)">
+    <!-- Document shape -->
+    <path d="M18 12a12 12 0 0 1 12-12h27.516a6 6 0 0 1 4.243 1.757l20.484 20.484A6 6 0 0 1 84 26.484V108a12 12 0 0 1-12 12H30a12 12 0 0 1-12-12V12z" fill="white" opacity="0.9"/>
+    
+    <!-- Download arrow -->
+    <g transform="translate(42, 48)" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 0v48"/>
+      <path d="M0 30l12 12 12-12"/>
+    </g>
+  </g>
+</svg>
