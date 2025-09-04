@@ -70,7 +70,7 @@ public class DownloadController {
 
     private Flux<ServerSentEvent<DownloadInfo>> heartbeat() {
         return Flux
-            .interval(Duration.ofSeconds(25))
+            .interval(Duration.ZERO, Duration.ofSeconds(25))
             .map(i -> ServerSentEvent.<DownloadInfo>builder().comment("heartbeat").build());
     }
 }
