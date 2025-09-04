@@ -1,9 +1,11 @@
 .DS_Store
-
+.vscode
+.idea
 #backend
 *.log
-.idea
 target/
 
 #frontend
 node_modules
+build/
+
