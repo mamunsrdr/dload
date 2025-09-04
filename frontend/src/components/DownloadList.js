@@ -9,7 +9,7 @@ const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDo
         <h2 className="text-lg font-semibold text-gray-100">
           Downloads ({downloads.length})
         </h2>
-        
+
         <div className="flex items-center space-x-4">
           {downloads.length > 0 && (
             <div className="flex items-center space-x-4 text-sm">
@@ -21,7 +21,7 @@ const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDo
               </span>
             </div>
           )}
-          
+
           <button
             onClick={onAddDownload}
             className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition-colors"
@@ -45,7 +45,7 @@ const DownloadList = ({ downloads, onCancelDownload, onPauseDownload, onResumeDo
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-300 mb-2">No tasks in hand</h3>
-            <p className="text-gray-500">Start your first download to get started</p>
+            <p className="text-gray-500">Add your first download to get started</p>
           </div>
         </div>
       ) : (

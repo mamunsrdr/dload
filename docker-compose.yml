@@ -11,7 +11,7 @@ services:
       - /mnt/storage/data/media:/downloads
     restart: unless-stopped
     mem_limit: 600m
-    cpus: "1.5"
+    cpus: "1.0"
     networks:
       - downloader-network
 
@@ -23,8 +23,8 @@ services:
     restart: unless-stopped
     depends_on:
       - dload-backend
-    mem_limit: 128m
-    cpus: "0.5"
+    mem_limit: 64m
+    cpus: "0.25"
     networks:
       - downloader-network
       - nginx_reverse_proxy_network

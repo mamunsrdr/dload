@@ -3,7 +3,7 @@
   <circle cx="96" cy="96" r="96" fill="#2563eb"/>
   
   <!-- Arrow Down -->
-  <g transform="translate(96, 42)" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g transform="translate(96, 54)" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M0 0v84"/>
     <path d="M-36 48l36 36 36-36"/>
   </g>

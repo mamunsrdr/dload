@@ -10,8 +10,8 @@ const Header = ({ stats }) => {
             <div className="flex-shrink-0">
               <div className="w-10 h-10 bg-blue-600 rounded-md flex items-center justify-center shadow-lg">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 4v12"/>
-                  <path d="M6 10l6 6 6-6"/>
+                  <path d="M12 6v12"/>
+                  <path d="M7 13l5 5 5-5"/>
                 </svg>
               </div>
             </div>
