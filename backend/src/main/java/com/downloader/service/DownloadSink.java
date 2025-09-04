@@ -15,7 +15,7 @@ public class DownloadSink {
         .onBackpressureBuffer();
 
     public void publish(DownloadInfo evt) {
-        Sinks.EmitResult result = sink.tryEmitNext(evt);
+        var result = sink.tryEmitNext(evt);
 
         if (result.isFailure()) {
             log.warn("Failed to emit event for download {}: {}", evt.getId(), result);

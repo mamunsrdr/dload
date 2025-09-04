@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {getApiUrl} from "../App";
 
 const DownloadForm = ({ onDownloadStart }) => {
@@ -7,6 +7,18 @@ const DownloadForm = ({ onDownloadStart }) => {
   const [outputPath, setOutputPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load last output path from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedOutputPath = localStorage.getItem('dload-last-output-path');
+      if (savedOutputPath) {
+        setOutputPath(savedOutputPath);
+      }
+    } catch (storageError) {
+      console.warn('Failed to load output path from localStorage:', storageError);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,6 +32,13 @@ const DownloadForm = ({ onDownloadStart }) => {
     setError('');
 
     try {
+      // Save output path to localStorage
+      try {
+        localStorage.setItem('dload-last-output-path', outputPath.trim());
+      } catch (storageError) {
+        console.warn('Failed to save output path to localStorage:', storageError);
+      }
+
       const response = await fetch(`${getApiUrl()}/api/downloads`, {
         method: 'POST',
         headers: {
@@ -42,7 +61,6 @@ const DownloadForm = ({ onDownloadStart }) => {
       // Reset form
       setUrl('');
       setFilename('');
-      setOutputPath('');
     } catch (error) {
       console.error('Error starting download:', error);
       setError('Failed to start download. Please check the URL and try again.');
