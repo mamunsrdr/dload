@@ -114,7 +114,7 @@ public class DirectDownloadTask implements DownloadTask {
 
         } catch (Exception e) {
             log.error(e.getMessage());
-            if (!(e instanceof InterruptedIOException)) {
+            if (!(e instanceof InterruptedIOException) && !e.getMessage().contains("interrupt")) {
                 setErrorDetails(e);
                 emitNextVersion();
             }

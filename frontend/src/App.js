@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import DownloadForm from './components/DownloadForm';
 import DownloadList from './components/DownloadList';
 import Header from './components/Header';
+import Modal from './components/Modal';
 
 export const getApiUrl = () => {
     const { protocol, hostname, port } = window.location;
@@ -16,6 +17,7 @@ export const getApiUrl = () => {
 function App() {
     const [downloads, setDownloads] = useState([]);
     const [globalEventSource, setGlobalEventSource] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [stats, setStats] = useState({
         total: 0,
         active: 0,
@@ -121,6 +123,9 @@ function App() {
             // Add the download to the list immediately
             updateDownload(downloadInfo);
 
+            // Close the modal after successful download start
+            setIsModalOpen(false);
+
             // No need to setup individual SSE - global stream handles all updates
         } catch (error) {
             console.error('Error handling download start:', error);
@@ -180,23 +185,24 @@ function App() {
             <Header stats={stats}/>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Download Form */}
-                    <div className="lg:col-span-1">
-                        <DownloadForm onDownloadStart={handleDownloadStart}/>
-                    </div>
-
-                    {/* Downloads List */}
-                    <div className="lg:col-span-2">
-                        <DownloadList
-                            downloads={downloads}
-                            onCancelDownload={handleCancelDownload}
-                            onPauseDownload={handlePauseDownload}
-                            onResumeDownload={handleResumeDownload}
-                        />
-                    </div>
-                </div>
+                {/* Downloads List - Full Width */}
+                <DownloadList
+                    downloads={downloads}
+                    onCancelDownload={handleCancelDownload}
+                    onPauseDownload={handlePauseDownload}
+                    onResumeDownload={handleResumeDownload}
+                    onAddDownload={() => setIsModalOpen(true)}
+                />
             </div>
+
+            {/* Download Form Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Add Download"
+            >
+                <DownloadForm onDownloadStart={handleDownloadStart}/>
+            </Modal>
         </div>
     );
 }

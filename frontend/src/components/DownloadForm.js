@@ -76,16 +76,7 @@ const DownloadForm = ({ onDownloadStart }) => {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-md p-6 sticky top-8">
-      <div className="flex items-center space-x-3 mb-6">
-        <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </div>
-        <h2 className="text-lg font-semibold text-gray-100">Add Download</h2>
-      </div>
-
+    <div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="url" className="block text-sm font-medium text-gray-400 mb-2">
