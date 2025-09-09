@@ -4,9 +4,8 @@ import com.downloader.entity.*;
 import com.downloader.service.*;
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -46,19 +45,9 @@ public class DownloadController {
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<DownloadInfo>> streamAll() {
-        return Flux.merge(progress(d -> true), heartbeat());
-    }
-
-    @GetMapping(value = "/{id}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<DownloadInfo>> streamOne(@PathVariable String id) {
-        return Flux.merge(progress(d -> d.getId().equals(id)), heartbeat());
-    }
-
-    private Flux<ServerSentEvent<DownloadInfo>> progress(Predicate<DownloadInfo> filter) {
-        return downloadService
+    public ResponseEntity<Flux<ServerSentEvent<DownloadInfo>>> streamAll() {
+        var progress = downloadService
             .flux()
-            .filter(filter)
             .map(dd -> ServerSentEvent
                 .builder(dd)
                 .id(dd.getId() + ":" + dd.getVersion())
@@ -66,7 +55,16 @@ public class DownloadController {
                 .retry(Duration.ofSeconds(2))
                 .build()
             );
+        var stream = Flux.merge(progress, heartbeat());
+        return ResponseEntity
+            .ok()
+            .header("Cache-Control", "no-cache")
+            .header("Connection", "keep-alive")
+            .header("X-Accel-Buffering", "no")
+            .contentType(MediaType.TEXT_EVENT_STREAM)
+            .body(stream);
     }
+
 
     private Flux<ServerSentEvent<DownloadInfo>> heartbeat() {
         return Flux

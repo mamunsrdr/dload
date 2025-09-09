@@ -1,7 +1,12 @@
 package com.downloader.service;
 
 import com.downloader.entity.*;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Subscription;
 import org.springframework.stereotype.*;
 import reactor.core.publisher.*;
 
@@ -9,6 +14,7 @@ import reactor.core.publisher.*;
 @Component
 public class DownloadSink {
 
+    private final Map<String, Subscription> activeConsumers = new ConcurrentHashMap<>();
     private static final Sinks.Many<DownloadInfo> sink = Sinks
         .many()
         .multicast()
@@ -24,13 +30,31 @@ public class DownloadSink {
             if (result == Sinks.EmitResult.FAIL_NON_SERIALIZED) {
                 sink.emitNext(evt, Sinks.EmitFailureHandler.FAIL_FAST);
             }
-        } else {
-            log.debug("Successfully emitted event for download {}: status={}, progress={}",
-                evt.getId(), evt.getStatus(), evt.getProgress());
         }
     }
 
     public Flux<DownloadInfo> flux() {
-        return sink.asFlux();
+        var clientId = UUID.randomUUID().toString().substring(0, 8);
+        return sink
+            .asFlux()
+            .doOnSubscribe(subscription -> {
+                activeConsumers.put(clientId, subscription);
+                log.debug("New SSE consumer connected: {} (total active: {})", clientId, activeConsumers.size());
+            })
+            .doOnNext(event -> {
+                log.trace("Sending event to consumers {}: download={}", clientId, event.getId());
+            })
+            .doOnCancel(() -> {
+                activeConsumers.remove(clientId);
+                log.debug("SSE consumer disconnected: {} (remaining: {})", clientId, activeConsumers.size());
+            })
+            .doOnTerminate(() -> {
+                activeConsumers.remove(clientId);
+                log.debug("SSE consumer terminated: {} (remaining: {})", clientId, activeConsumers.size());
+            })
+            .doOnError(error -> {
+                activeConsumers.remove(clientId);
+                log.error("SSE consumer error: {} (remaining: {}): {}", clientId, activeConsumers.size(), error.getMessage());
+            });
     }
 }
