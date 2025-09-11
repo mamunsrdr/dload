@@ -1,13 +1,11 @@
 package com.downloader.service;
 
-import com.downloader.entity.*;
-import java.time.Duration;
+import com.downloader.entity.DownloadInfo;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscription;
-import org.springframework.stereotype.*;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.*;
 
 @Slf4j
@@ -18,7 +16,7 @@ public class DownloadSink {
     private static final Sinks.Many<DownloadInfo> sink = Sinks
         .many()
         .multicast()
-        .onBackpressureBuffer();
+        .directAllOrNothing();
 
     public void publish(DownloadInfo evt) {
         var result = sink.tryEmitNext(evt);
@@ -37,6 +35,9 @@ public class DownloadSink {
         var clientId = UUID.randomUUID().toString().substring(0, 8);
         return sink
             .asFlux()
+            .onErrorContinue((error, item) -> {
+                log.debug("Error processing event for client {}, continuing stream: {}", clientId, error.getMessage());
+            })
             .doOnSubscribe(subscription -> {
                 activeConsumers.put(clientId, subscription);
                 log.debug("New SSE consumer connected: {} (total active: {})", clientId, activeConsumers.size());
