@@ -6,12 +6,10 @@ services:
     container_name: dload-backend
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      JAVA_OPTS: "-Xms512m -Xmx512m -XX:+UseSerialGC -XX:+UseContainerSupport -XX:TieredStopAtLevel=1 -Xss256k"
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseSerialGC -XX:+UseContainerSupport -XX:TieredStopAtLevel=1 -Xss256k"
     volumes:
-      - /mnt/storage/data/media:/downloads
+      - /data/media:/downloads
     restart: unless-stopped
-    mem_limit: 600m
-    cpus: "1.0"
     networks:
       - downloader-network
 
@@ -23,8 +21,6 @@ services:
     restart: unless-stopped
     depends_on:
       - dload-backend
-    mem_limit: 64m
-    cpus: "0.25"
     networks:
       - downloader-network
       - nginx_reverse_proxy_network

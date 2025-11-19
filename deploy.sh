@@ -4,6 +4,6 @@ cd backend && ./mvnw clean install -s settings.xml
 cd ..
 cd frontend && npm run build
 cd ..
-docker context use pihome
+docker context use homelab
 docker-compose down
 docker-compose up -d --build
