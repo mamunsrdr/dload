@@ -4,7 +4,11 @@ WORKDIR /app
 
 COPY target/dload.jar /app
 
-RUN mkdir /downloads
+RUN mkdir /downloads \
+    && useradd -u 1000 -m appuser \
+    && chown -R appuser /app /downloads
+
+USER appuser
 
 EXPOSE 8080
 
