@@ -17,6 +17,7 @@ import reactor.core.publisher.Flux;
 public class DownloadController {
 
     private final DownloadService downloadService;
+    private final NetworkInfoService networkInfoService;
 
     @GetMapping
     public List<DownloadInfo> list() {
@@ -42,6 +43,11 @@ public class DownloadController {
     @DeleteMapping("/{id}")
     public void cancel(@PathVariable String id) {
         downloadService.cancel(id);
+    }
+
+    @GetMapping("/network")
+    public NetworkInfo getNetworkInfo() {
+        return networkInfoService.getNetworkInfo();
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

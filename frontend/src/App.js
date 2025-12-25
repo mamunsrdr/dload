@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import DownloadForm from './components/DownloadForm';
 import DownloadList from './components/DownloadList';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import Modal from './components/Modal';
 
 export const getApiUrl = () => {
@@ -181,19 +182,23 @@ function App() {
     };
 
     return (
-        <div className="min-h-screen bg-black">
+        <div className="min-h-screen bg-black flex flex-col">
             <Header stats={stats}/>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Downloads List - Full Width */}
-                <DownloadList
-                    downloads={downloads}
-                    onCancelDownload={handleCancelDownload}
-                    onPauseDownload={handlePauseDownload}
-                    onResumeDownload={handleResumeDownload}
-                    onAddDownload={() => setIsModalOpen(true)}
-                />
+            <div className="flex-1 w-full">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Downloads List - Full Width */}
+                    <DownloadList
+                        downloads={downloads}
+                        onCancelDownload={handleCancelDownload}
+                        onPauseDownload={handlePauseDownload}
+                        onResumeDownload={handleResumeDownload}
+                        onAddDownload={() => setIsModalOpen(true)}
+                    />
+                </div>
             </div>
+
+            <Footer />
 
             {/* Download Form Modal */}
             <Modal
